@@ -20,11 +20,17 @@ do_rand(unsigned long *ctx)
  */
     long hi, lo, x;
 
+    //  M = 2^31-1 = 127773 * (7^5) + 2836
+    //  seed = hi*127773 + lo
+    //  seed*16807 = hi*12773*16807 + lo*16807= hi *(M-2836) + lo*16807
+    // 对 M 取余，即消除展开后包含 M 的项
+    // 最后得到 16807 * lo - 2836 * hi
+
     /* Transform to [1, 0x7ffffffe] range. */
     x = (*ctx % 0x7ffffffe) + 1;
     hi = x / 127773;
     lo = x % 127773;
-    x = 16807 * lo - 2836 * hi;
+    x = 16807 * lo - 2836 * hi; // 7^5=16807   
     if (x < 0)
         x += 0x7fffffff;
     /* Transform to [0, 0x7ffffffd] range. */
@@ -62,7 +68,7 @@ main(int argc, char *argv[])
   // an insecure way of generating a random string, because xv6
   // doesn't have good source of randomness.
   rand_next = uptime();
-  randstring(secret, 8);
+  randstring(secret, 8); // 生成8字节的随机字符
   
   if((pid = fork()) < 0) {
     printf("fork failed\n");
@@ -93,6 +99,7 @@ main(int argc, char *argv[])
       exit(1);
     } else {
        close(fds[1]);
+       // 从 pipe 读端读取数据
       if(read(fds[0], output, 64) < 0) {
         printf("FAIL; read failed; no secret\n");
         exit(1);

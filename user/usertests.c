@@ -1009,11 +1009,16 @@ forkforkfork(char *s)
   }
   if(pid == 0){
     while(1){
+      // 开始文件不存在，则 fd 返回 -1，fork 会产生新的进程id，超过64后从-1 开始
       int fd = open("stopforking", 0);
+      printf("open stopforking: %d\n", fd);
+      // 文件打开成功后 fd >0
       if(fd >= 0){
         exit(0);
       }
-      if(fork() < 0){
+      // fork() 返回的 PID 超过上限就会返回 -1
+      if(fork() < 0){ 
+        printf("close stopforking: %d\n", fd);
         close(open("stopforking", O_CREATE|O_RDWR));
       }
     }
@@ -1022,6 +1027,7 @@ forkforkfork(char *s)
   }
 
   sleep(20); // two seconds
+  printf("--------------\n");
   close(open("stopforking", O_CREATE|O_RDWR));
   wait(0);
   sleep(10); // one second

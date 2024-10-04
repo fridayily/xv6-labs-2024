@@ -52,7 +52,7 @@ argraw(int n)
   return -1;
 }
 
-// Fetch the nth 32-bit system call argument.
+// Fetch the nth 32-bit system call argument. 获取指定系统调用的第 n 个参数
 void
 argint(int n, int *ip)
 {
@@ -99,11 +99,14 @@ extern uint64 sys_write(void);
 extern uint64 sys_mknod(void);
 extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
-extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_mkdir(void);
+extern uint64 sys_trace(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
+// Function Pointers void (*fun)(int x)
+// Arrays of Function Pointers  void (*fun[])(int x)
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -126,11 +129,40 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_trace]   sys_trace
 };
 
+
+static char *syscall_names[] = {
+   "fork",
+   "exit",
+   "wait",
+   "pipe",
+   "read",
+   "kill",
+   "exec",
+   "fstat",
+   "chdir",
+   "dup",
+   "getpid",
+   "sbrk",
+   "sleep",
+   "uptime",
+   "open",
+   "write",
+   "mknod",
+   "unlink",
+   "link",
+   "mkdir",
+   "close",
+   "trace"
+}
+;
+// 执行 ecall 指令后跳转到这里
 void
 syscall(void)
 {
+
   int num;
   struct proc *p = myproc();
 
@@ -138,7 +170,13 @@ syscall(void)
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
+    // 执行指定的系统调用，返回值放在 a0 寄存器
+    // 如 read 返回读取字节数
+    // trace 系统调用返回值是 0,则 a0=0
     p->trapframe->a0 = syscalls[num]();
+    if((1<<num) & p->tracenum){
+      printf("%d: syscall %s -> %ld\n",p->pid,syscall_names[num-1],p->trapframe->a0);
+    }
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);

@@ -9,6 +9,7 @@
 
 static int loadseg(pde_t *, uint64, struct inode *, uint, uint);
 
+// 标记转权限
 int flags2perm(int flags)
 {
     int perm = 0;

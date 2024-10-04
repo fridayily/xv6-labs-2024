@@ -1,0 +1,17 @@
+1.Looking at the backtrace output, which function called syscall?
+    usertrap
+
+2.What is the value of p->trapframe->a7 and what does that value represent? (Hint: look user/initcode.S, the first user program xv6 starts.)
+    7,exec system call
+3.What was the previous mode that the CPU was in?
+    machine mode
+4.Write down the assembly instruction the kernel is panicing at. Which register corresponds to the variable num?
+    lw      a3,0(zero) , a3 
+
+5.Why does the kernel crash? Hint: look at figure 3-3 in the text; is address 0 mapped in the kernel address space? Is that confirmed by the value in scause above? (See description of scause in RISC-V privileged instructions)
+    try to address a not mapped mem page
+    address 0 is not mapped in the kernel address space
+    yes,scause=0xd means load page fault
+
+6.What is the name of the process that was running when the kernel paniced? What is its process id (pid)?
+    p->name = initcode  p->pid = 1

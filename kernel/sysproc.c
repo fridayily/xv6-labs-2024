@@ -91,3 +91,13 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_trace(void){
+  int mask;
+  // 从 a0 寄存器取处
+  argint(0,&mask);
+  myproc()->tracenum=mask;
+  // trace 系统调用返回值
+  return 0;
+}

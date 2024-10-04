@@ -6,9 +6,9 @@
 # exec(init, argv)
 .globl start
 start:
-        la a0, init
-        la a1, argv
-        li a7, SYS_exec
+        la a0, init # 将 init 的地址加载到寄存器 a0
+        la a1, argv # 加载 argv
+        li a7, SYS_exec # 将 SYS_exec加载到 a7
         ecall
 
 # for(;;) exit();

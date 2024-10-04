@@ -1,8 +1,15 @@
 set confirm off
 set architecture riscv:rv64
+#file user/_ls
+#file user/_find
+
 target remote 127.0.0.1:1234
 symbol-file kernel/kernel
 symbol-file user/_sleep
+#symbol-file user/_find
+#symbol-file user/_cat
 b user/sleep.c:12
+#user/find.c:85
+#user/cat.c:34
 set disassemble-next-line auto
 set riscv use-compressed-breakpoints yes

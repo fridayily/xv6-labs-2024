@@ -110,7 +110,7 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
-
+  // 最大进程数限制为 64
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -284,6 +284,7 @@ fork(void)
   struct proc *p = myproc();
 
   // Allocate process.
+  // 无法分配进程
   if((np = allocproc()) == 0){
     return -1;
   }
@@ -312,6 +313,8 @@ fork(void)
 
   pid = np->pid;
 
+
+
   release(&np->lock);
 
   acquire(&wait_lock);
@@ -321,6 +324,8 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
+
+  np->tracenum = p->tracenum;
 
   return pid;
 }
