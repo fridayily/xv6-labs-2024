@@ -18,6 +18,7 @@ main()
   } else {
     printf("parent waiting\n");
     wait(&status);
+    // status 保存子进程的退出状态
     printf("the child exited with status %d\n", status);
   }
 
