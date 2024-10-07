@@ -114,6 +114,7 @@ allocproc(void)
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
+      // 找到未使用进程
       goto found;
     } else {
       release(&p->lock);

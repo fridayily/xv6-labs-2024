@@ -99,22 +99,25 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     panic("walk");
 
   for(int level = 2; level > 0; level--) {
-    pte_t *pte = &pagetable[PX(level, va)];
-    if(*pte & PTE_V) {
+    pte_t *pte = &pagetable[PX(level, va)]; // 从 pagetable 中获取指定的 pte 地址，从最高级开始
+    if(*pte & PTE_V) { // 如果标记位设置是有效
+      // 获取 pte 的物理地址
       pagetable = (pagetable_t)PTE2PA(*pte);
 #ifdef LAB_PGTBL
       if(PTE_LEAF(*pte)) {
         return pte;
       }
 #endif
-    } else {
+    } else {// PTE 标记无效
+    // alloc 不等于0 ，新分配一页内存，成功后初始化分配内存为0
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
+      // 第level 的物理地址转为 PTE，并设置为有效
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
-  return &pagetable[PX(0, va)];
+  return &pagetable[PX(0, va)]; // 虚拟地址对应的 PTE 地址，即 L0 级的 PTE 地址
 }
 
 // Look up a virtual address, return the physical address,
@@ -129,7 +132,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
   if(va >= MAXVA)
     return 0;
 
-  pte = walk(pagetable, va, 0);
+  pte = walk(pagetable, va, 0); // 从pagetable 中获取对应的 pte 地址
   if(pte == 0)
     return 0;
   if((*pte & PTE_V) == 0)
@@ -151,6 +154,7 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
     panic("kvmmap");
 }
 
+// 映射物理地址到 PTES
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa.
 // va and size MUST be page-aligned.
@@ -171,13 +175,14 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   if(size == 0)
     panic("mappages: size");
   
-  a = va;
+  a = va;// 从 va 开始创建 PTE
   last = va + size - PGSIZE;
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
       panic("mappages: remap");
+      // 从物理地址获得 PTE
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
@@ -208,12 +213,15 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       printf("va=%ld pte=%ld\n", a, *pte);
       panic("uvmunmap: not mapped");
     }
+    // 如果 flag== PTE_V
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
+     //  free 物理地址 
     if(do_free){
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
     }
+    // 清空 PTE 地址
     *pte = 0;
   }
 }
@@ -244,6 +252,7 @@ uvmfirst(pagetable_t pagetable, uchar *src, uint sz)
   mem = kalloc();
   memset(mem, 0, PGSIZE);
   mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);
+  // 将 src 的数据复制到 mem
   memmove(mem, src, sz);
 }
 
@@ -263,7 +272,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
   oldsz = PGROUNDUP(oldsz);
   for(a = oldsz; a < newsz; a += sz){
     sz = PGSIZE;
-    mem = kalloc();
+    mem = kalloc(); // 分配物理地址
     if(mem == 0){
       uvmdealloc(pagetable, a, oldsz);
       return 0;
@@ -280,6 +289,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
   return newsz;
 }
 
+// 调整进程内存大小，从 oldsz 到 newdz ，以 page 为单位
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -354,7 +364,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
       goto err;
+      // 拷贝1页数据到新分配的地址
     memmove(mem, (char*)pa, PGSIZE);
+    // 将新分配的物理地址与虚拟地址建立关系
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
       kfree(mem);
       goto err;
@@ -367,6 +379,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return -1;
 }
 
+// 设置一个 PTE 用户无效
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void
@@ -383,6 +396,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
+// 从 src 拷贝 len 字节到指定 page table 的虚拟地址
 int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
@@ -390,6 +404,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   pte_t *pte;
 
   while(len > 0){
+    // 向下取最接近的对齐的虚拟地址
     va0 = PGROUNDDOWN(dstva);
     if (va0 >= MAXVA)
       return -1;
@@ -402,13 +417,15 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     // forbid copyout over read-only user text pages.
     if((*pte & PTE_W) == 0)
       return -1;
-    
+    // 虚拟地址对应的物理地址，后续要将 src 数据拷贝到对应物理地址
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
+    // 第一次拷贝时 n 不是 PGSIZE 倍数
+    // 之后按页拷贝
     memmove((void *)(pa0 + (dstva - va0)), src, n);
 
     len -= n;
@@ -417,6 +434,15 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   }
   return 0;
 }
+
+// -- 4096     == n = PGSIZE - (dstva - va0);
+// -- ******
+// -- dstva    == pa0 + (dstva - va0)
+// -- *******
+// -- va0      == pa0
+
+
+
 
 // Copy from user to kernel.
 // Copy len bytes to dst from virtual address srcva in a given page table.
@@ -428,12 +454,14 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
   
   while(len > 0){
     va0 = PGROUNDDOWN(srcva);
+    // 物理地址
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (srcva - va0);
     if(n > len)
       n = len;
+      //从用户虚拟地址拷贝到内核的dst
     memmove(dst, (void *)(pa0 + (srcva - va0)), n);
 
     len -= n;
@@ -469,7 +497,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
         got_null = 1;
         break;
       } else {
-        *dst = *p;
+        *dst = *p; // 复制一个字符
       }
       --n;
       --max;
