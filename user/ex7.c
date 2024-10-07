@@ -12,6 +12,8 @@ main()
   int n;
 
   // create a pipe, with two FDs in fds[0], fds[1].
+  // fds 0 用来读
+  // fds 1 用来写
   pipe(fds);
   
   // write to the pipe
