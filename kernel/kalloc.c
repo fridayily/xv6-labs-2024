@@ -27,11 +27,12 @@ void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  // 初始化所有物理内存
   freerange(end, (void*)PHYSTOP);
 }
 
 
-
+// 将指定范围的物理内存地址设置为free，
 void
 freerange(void *pa_start, void *pa_end)
 {
@@ -51,6 +52,7 @@ kfree(void *pa)
 {
   struct run *r;
 
+  // 传入的物理地址未对齐，小于起始地址，超出最大地址 则报错
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
@@ -60,9 +62,11 @@ kfree(void *pa)
   memset(pa, 1, PGSIZE);
 #endif
   
+  // pa 是内存物理地址，现在存到 run 结构体中
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
+  // 将 r 节点插入链表头部，kmem 是头节点
   r->next = kmem.freelist;
   kmem.freelist = r;
   release(&kmem.lock);
@@ -80,7 +84,9 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
-  if(r) {
+  // 从链表的头部取出一个节点
+if(r) {
+    // 从链表中删除取出的节点
     kmem.freelist = r->next;
   }
   release(&kmem.lock);

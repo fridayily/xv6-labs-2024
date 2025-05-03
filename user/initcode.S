@@ -8,7 +8,7 @@
 start:
         la a0, init # 将 init 的地址加载到寄存器 a0
         la a1, argv # 加载 argv
-        li a7, SYS_exec # 将 SYS_exec加载到 a7
+        li a7, SYS_exec # 将 SYS_exec 加载到 a7 7 系统调用
         ecall
 
 # for(;;) exit();

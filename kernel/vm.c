@@ -23,6 +23,8 @@ kvmmake(void)
 {
   pagetable_t kpgtbl;
 
+ // 分配一页物理地址
+ // 可分配的物理地址用一个链表维护，分配从链表头部取出，释放添加到链表头部
   kpgtbl = (pagetable_t) kalloc();
   memset(kpgtbl, 0, PGSIZE);
 
@@ -80,7 +82,9 @@ kvminithart()
   sfence_vma();
 }
 
-// Return the address of the PTE in page table pagetable
+// 返回给定虚拟地址对应的PTE地址
+// 如果找不到会新建页表
+// Return the address of the PTE  in page table pagetable
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page-table pages.
 //
@@ -100,24 +104,29 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)]; // 从 pagetable 中获取指定的 pte 地址，从最高级开始
-    if(*pte & PTE_V) { // 如果标记位设置是有效
-      // 获取 pte 的物理地址
+    if(*pte & PTE_V) { 
+      // 如果标记位设置是有效,说明内存已经被使用
+      // 获取 pte 的物理地址，这个 pte 指向下一级页目录的物理地址
       pagetable = (pagetable_t)PTE2PA(*pte);
 #ifdef LAB_PGTBL
       if(PTE_LEAF(*pte)) {
         return pte;
       }
 #endif
-    } else {// PTE 标记无效
-    // alloc 不等于0 ，新分配一页内存，成功后初始化分配内存为0
+    } else {
+    // PTE 标记无效
+    // alloc = 0,则直接返回0
+    // alloc !=0,新分配一页内存，成功后初始化分配内存为0
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
       // 第level 的物理地址转为 PTE，并设置为有效
+      // 如这里新建第二级页表，将该页表的物理地址页号存到第一级的PTE中
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
-  return &pagetable[PX(0, va)]; // 虚拟地址对应的 PTE 地址，即 L0 级的 PTE 地址
+  // 虚拟地址对应的 PTE 地址，即 L0 级的 PTE 地址
+  return &pagetable[PX(0, va)]; 
 }
 
 // Look up a virtual address, return the physical address,
@@ -147,6 +156,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
 // add a mapping to the kernel page table.
 // only used when booting.
 // does not flush TLB or enable paging.
+// Translation Look-aside Buffer (TLB)
 void
 kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 {

@@ -112,10 +112,12 @@ allocproc(void)
   struct proc *p;
   // 最大进程数限制为 64
   for(p = proc; p < &proc[NPROC]; p++) {
+    // 对新建的进程加锁，正常结束不会释放锁
     acquire(&p->lock);
     if(p->state == UNUSED) {
       goto found;
     } else {
+      // 找到已使用的进程，会释放锁
       release(&p->lock);
     }
   }
@@ -239,6 +241,7 @@ userinit(void)
   
   // allocate one user page and copy initcode's instructions
   // and data into it.
+  // 加载一段机器码到进程页表，这里没有执行，会在main中 scheduler 后执行，会进行第一个系统调用 SYS_exec(7)
   uvmfirst(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
@@ -246,7 +249,9 @@ userinit(void)
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
 
+  // 设置进程名称
   safestrcpy(p->name, "initcode", sizeof(p->name));
+  // 工作目录
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
@@ -284,7 +289,8 @@ fork(void)
   struct proc *p = myproc();
 
   // Allocate process.
-  // 无法分配进程
+  // 初始化子进程，这里对进程进行了加锁
+  // np -> new process
   if((np = allocproc()) == 0){
     return -1;
   }
@@ -295,6 +301,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  // size of memory
   np->sz = p->sz;
 
   // copy saved user registers.
@@ -313,7 +320,8 @@ fork(void)
 
   pid = np->pid;
 
-
+  // 将 tracenum 从父进程复制到子进程
+  np->tracenum = p->tracenum;
 
   release(&np->lock);
 
@@ -324,8 +332,6 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
-
-  np->tracenum = p->tracenum;
 
   return pid;
 }
