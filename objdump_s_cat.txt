@@ -179,7 +179,7 @@ strcpy(char *s, const char *t)
  13a:	e422                	sd	s0,8(sp)
  13c:	0800                	addi	s0,sp,16
   char *os;
-
+  // 保持目标字符串起始地址
   os = s;
   while((*s++ = *t++) != 0)
  13e:	87aa                	mv	a5,a0
@@ -474,7 +474,9 @@ atoi(const char *s)
  2f6:	bfe5                	j	2ee <atoi+0x40>
 
 00000000000002f8 <memmove>:
-
+// n 要拷贝的字节数
+// 如果 src> dst,说明源在目标之后，从前向后拷贝
+// 否则，从后向前拷贝，避免数据覆盖
 void*
 memmove(void *vdst, const void *vsrc, int n)
 {

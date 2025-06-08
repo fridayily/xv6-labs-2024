@@ -55,6 +55,7 @@ void find(char *dir_name, char *file_name)
             memmove(p, de.name, DIRSIZ);
 
             p[DIRSIZ] = 0;
+            // buf 文件夹起始地址
             if (stat(buf, &st) < 0)
             {
                 fprintf(2,"find: cannot stat %s\n", buf);

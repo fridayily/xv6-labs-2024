@@ -9,7 +9,7 @@ int main()
   {
     printf("------1");
     int n = read(0, buf, sizeof(buf));
-    printf("------2");
+    printf("------2 %d\n",n);
 
     if (n <= 0)
       break;

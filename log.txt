@@ -54,3 +54,11 @@ sudo apt purge qemu-system qemu-system-x86 qemu-utils
 
 
 ./grade-lab-util sleep    
+
+
+-p 选项会打印程序头（Program Header）、动态节（Dynamic Section）等信息，但不会显示反汇编代码。
+你可以用它来查看 ELF 文件的入口点、段信息、依赖库等
+riscv64-linux-gnu-objdump -p user/_cat 
+
+显示目标文件中的符号表工具，-n 表示按符号的地址排序输出
+riscv64-linux-gnu-nm -n user/_cat

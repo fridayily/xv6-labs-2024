@@ -33,7 +33,7 @@ void exec_fun(const char* file_name,char **param)
 int main(int argc, char *argv[])
 {
 
-    if (argc < 3)
+    if (argc < 2)
     {
         printf("error argc");
         exit(1);
@@ -44,6 +44,9 @@ int main(int argc, char *argv[])
     char *param_buf[MAXARG];
     int i = 0;
     int j = 0;
+    // 从标准输入中读取参数，按照换行符分割 
+    // 读到 EOF 时退出循环
+    // j 就是有几组换行分割的参数， 存在param_buf[j]
     while (read(0, &a, 1) == 1)
     {
         if (a != '\n')
@@ -62,6 +65,7 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "-n") != 0)
     {
+        // 没有 -n 参数，则第一个参数就是命令
         for (int n = 0; n < j; ++n)
         {
             char *param[MAXARG];
@@ -78,16 +82,16 @@ int main(int argc, char *argv[])
     }
     else
     {
-
+        // 没 cnt 个参数一组
         int cnt = atoi(argv[2]);
-
         for (int k = 0; k < j;)
         {
-            char *param[cnt + 2]; // +2 保存命令 和 0
-            param[0] = argv[3];
+            char *param[cnt + 2]; // 1 个命令名 + cnt 个参数 + 1 个结尾 0
+            param[0] = argv[3]; // 命令名（如 echo）
             int m = 0;
-            for (m = 0; m < cnt && k < j; ++m)
+            for (m = 0; m < cnt && k < j; ++m) // 每次最多取 cnt 个参数，填入 param[1] ~ param[cnt]
             {
+                // param_buf[k] 就是第 k 行输入
                 param[m + 1] = param_buf[k];
                 ++k;
             }

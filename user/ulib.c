@@ -18,7 +18,7 @@ char*
 strcpy(char *s, const char *t)
 {
   char *os;
-
+  // 保持目标字符串起始地址
   os = s;
   while((*s++ = *t++) != 0)
     ;
@@ -106,6 +106,11 @@ atoi(const char *s)
   return n;
 }
 
+// vdst 目标地址
+// vsrc 源地址
+// n 要拷贝的字节数
+// 如果 src> dst,说明源在目标之后，从前向后拷贝
+// 否则，从后向前拷贝，避免数据覆盖
 void*
 memmove(void *vdst, const void *vsrc, int n)
 {
