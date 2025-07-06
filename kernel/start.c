@@ -16,7 +16,7 @@ start()
 {
   // set M Previous Privilege mode to Supervisor, for mret.
   unsigned long x = r_mstatus();
-  // 清楚 MPP
+  // 清除 MPP
   x &= ~MSTATUS_MPP_MASK;
   // 设置 supervisor 模式
   x |= MSTATUS_MPP_S;

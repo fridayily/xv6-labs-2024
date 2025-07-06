@@ -9,7 +9,14 @@
         # kernel.ld causes this code to start at 
         # a page boundary.
         #
-
+        # 对 ecall 瞬间的状态做快照
+        # 填充 struct trapframe （trap.h）中的寄存器
+        # 利用 $sscratch(S-mode scratch) 保持所有寄存器
+        # 切换到内核栈（相当于切换到进程对应的内核线程）
+        # 切换到内核地址空间
+        #    修改 #satp 寄存器 (S-mode address translation and protection)
+        #    sfence.vma (flush TLB)
+        # 跳转到 tf->kernel_trap
 #include "riscv.h"
 #include "memlayout.h"
 

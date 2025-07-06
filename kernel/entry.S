@@ -2,6 +2,8 @@
         # and causes each hart (i.e. CPU) to jump there.
         # kernel.ld causes the following code to
         # be placed at 0x80000000.
+        # 位于地址 0x80000000，主要功能是为每个 CPU 核心（hart）
+        # 设置独立的栈空间，然后跳转到 C 语言实现的 start() 函数继续初始化
 .section .text
 .global _entry
 _entry:
@@ -14,7 +16,7 @@ _entry:
         # li 加载立即数到寄存器中，设置每个CPU的栈空间大小 4096 byte
         li a0, 1024*4
         # csrr 获取当前 CPU 核心的ID  machine hard id
-        # 这里没懂？ mhartid 不等于核数，而且不一定数值上连续，但至少有一个必须为0
+        # mhartid 不等于核数，而且不一定数值上连续，但至少有一个必须为0
         csrr a1, mhartid
         addi a1, a1, 1
         mul a0, a0, a1
