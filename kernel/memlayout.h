@@ -45,6 +45,7 @@
 
 // map kernel stacks beneath the trampoline,
 // each surrounded by invalid guard pages.
+// 用于计算每个进程的内核栈地址；每个进程的内核栈间隔为一页（4KB）；
 #define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)
 
 // User memory layout.

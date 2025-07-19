@@ -1,7 +1,7 @@
 // Saved registers for kernel context switches.
 struct context {
-  uint64 ra;
-  uint64 sp;
+  uint64 ra; // return address 返回地址寄存器
+  uint64 sp; // 栈指针寄存器（stack pointer）
 
   // callee-saved
   uint64 s0;
@@ -46,10 +46,10 @@ struct trapframe {
   /*  16 */ uint64 kernel_trap;   // usertrap()
   /*  24 */ uint64 epc;           // saved user program counter
   /*  32 */ uint64 kernel_hartid; // saved kernel tp
-  /*  40 */ uint64 ra;
-  /*  48 */ uint64 sp;
-  /*  56 */ uint64 gp;
-  /*  64 */ uint64 tp;
+  /*  40 */ uint64 ra; // Return Address Registe
+  /*  48 */ uint64 sp; // Stack Pointer Register
+  /*  56 */ uint64 gp; // Global Pointer Register
+  /*  64 */ uint64 tp; // Thread Pointer Register
   /*  72 */ uint64 t0;
   /*  80 */ uint64 t1;
   /*  88 */ uint64 t2;

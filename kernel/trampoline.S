@@ -20,11 +20,27 @@
 #include "riscv.h"
 #include "memlayout.h"
 
+# 内核会在系统启动时，将一个内核空间的栈地址写入 sscratch ，这个地址专门用于存放数据，不会与用户寄存器冲突
+# 陷阱发生后， 可以将 a0 寄存器的值保存到 sscratch 中，确保在内核处理过程中不会丢失该值，
+# 处理完成后可以通过 csrc sscratch, a0 恢复该值
+
+
+# 上下文切换流程
+#     用户程序执行 → 触发异常（如系统调用、中断）
+#     CPU 进入 Supervisor 模式，跳转到 uservec；
+#     执行 C 函数 usertrap() 处理异常
+#     最终通过 userret 返回用户态
+
+
+# 指定接下来的代码放入名为 trampsec 的段
 .section trampsec
+# 声明全局符号 trampoline 和 usertrap
 .globl trampoline
 .globl usertrap
+#  定义 trampoline 标签 .align 4 表示按 16 字节对齐
 trampoline:
 .align 4
+# 声明全局符号 uservec, 是用户中断向量表的入口地址,通常用于处理时钟中断、系统调用等异常
 .globl uservec
 uservec:    
 	#
@@ -36,14 +52,17 @@ uservec:
 
         # save user a0 in sscratch so
         # a0 can be used to get at TRAPFRAME.
+        # 将 a0 与 sscratch 的值交换
         csrw sscratch, a0
 
         # each process has a separate p->trapframe memory area,
         # but it's mapped to the same virtual address
         # (TRAPFRAME) in every process's user page table.
+        # load immediate  将 TRAPFRAME 的地址加载到 a0 中
         li a0, TRAPFRAME
         
         # save the user registers in TRAPFRAME
+        # 将寄存器 ra（返回地址寄存器）的值保存到 trapframe 中偏移量为 40 的位置
         sd ra, 40(a0)
         sd sp, 48(a0)
         sd gp, 56(a0)
@@ -76,6 +95,9 @@ uservec:
         sd t6, 280(a0)
 
 	# save the user a0 in p->trapframe->a0
+        # uservec的第一步操作是通过sscratch暂存用户a0的值
+        # 从 sscratch 寄存器中读取值并保存到 t0
+        # 将 t0 的值 存到 TRAPFRAME 的偏移量为 112 的位置，即 a0
         csrr t0, sscratch
         sd t0, 112(a0)
 
@@ -93,12 +115,17 @@ uservec:
 
         # wait for any previous memory operations to complete, so that
         # they use the user page table.
+        # 刷新当前地址空间下的所有 TLB 条目，
+        # 确保后续的地址转换使用最新的页表映射
         sfence.vma zero, zero
 
         # install the kernel page table.
+        # 用于从用户页表切换回内核页表
         csrw satp, t1
 
         # flush now-stale user entries from the TLB.
+        # 由于刚刚切换了页表（通过 csrw satp, t1），之前缓存的用户态 TLB 条目已经失效
+        # 再次刷新 TLB。
         sfence.vma zero, zero
 
         # jump to usertrap(), which does not return
@@ -112,6 +139,8 @@ userret:
         # a0: user page table, for satp.
 
         # switch to the user page table.
+        #  Recall that the
+        # user page table maps both the trampoline page and TRAPFRAME, but nothing else from the kernel.
         sfence.vma zero, zero
         csrw satp, a0
         sfence.vma zero, zero

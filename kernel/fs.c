@@ -362,6 +362,7 @@ iput(struct inode *ip)
 }
 
 // Common idiom: unlock, then put.
+// 释放 inode 的锁并减少其引用计数。
 void
 iunlockput(struct inode *ip)
 {

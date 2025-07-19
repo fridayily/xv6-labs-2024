@@ -44,6 +44,7 @@ proc_mapstacks(pagetable_t kpgtbl)
 }
 
 // initialize the proc table.
+// 在 kernel/main 中调用
 void
 procinit(void)
 {
@@ -84,6 +85,7 @@ myproc(void)
 {
   push_off();
   struct cpu *c = mycpu();
+  // 当前 CPU 正在运行的进程指针
   struct proc *p = c->proc;
   pop_off();
   return p;
@@ -146,6 +148,7 @@ found:
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
+  // 每个进程在内核有独立的栈空间，sp 初始指向栈顶 
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
@@ -175,13 +178,18 @@ freeproc(struct proc *p)
 
 // Create a user page table for a given process, with no user memory,
 // but with trampoline and trapframe pages.
+// 为用户进程创建一个新的空页表，并映射必要的系统级页面
+// （如 trampoline 和 trapframe），但不包含用户空间内存。
+// p 是从 proc[NPROC] 取到的一个进程
 pagetable_t
 proc_pagetable(struct proc *p)
 {
   pagetable_t pagetable;
 
   // An empty page table.
+  // 创建用户空间的虚拟表
   pagetable = uvmcreate();
+  printf("uvmcreate pagetable=%p\n",pagetable);
   if(pagetable == 0)
     return 0;
 
@@ -189,6 +197,9 @@ proc_pagetable(struct proc *p)
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
+  // 将内核中的跳板代码（trampoline.S）映射到用户虚拟地址空间的最高地址 TRAMPOLINE
+  // 用于用户态与内核态之间的切换（例如系统调用返回时）
+  // trampoline 跳板代码的物理地址
   if(mappages(pagetable, TRAMPOLINE, PGSIZE,
               (uint64)trampoline, PTE_R | PTE_X) < 0){
     uvmfree(pagetable, 0);
@@ -197,6 +208,8 @@ proc_pagetable(struct proc *p)
 
   // map the trapframe page just below the trampoline page, for
   // trampoline.S.
+  // 将当前进程的 trapframe 结构体映射到用户虚拟地址空间的 TRAPFRAME 地址
+  // 供跳板代码（trampoline.S）访问异常上下文和切换栈使用
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
               (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
@@ -236,6 +249,7 @@ userinit(void)
 {
   struct proc *p;
 
+  // 第一个用户进程
   p = allocproc();
   initproc = p;
   
@@ -308,6 +322,8 @@ fork(void)
   *(np->trapframe) = *(p->trapframe);
 
   // Cause fork to return 0 in the child.
+  // 确保子进程返回 0
+  // 子进程从 fork 返回开始执行
   np->trapframe->a0 = 0;
 
   // increment reference counts on open file descriptors.
@@ -531,6 +547,12 @@ yield(void)
 
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
+// 在子进程首次被调度器（scheduler）调度时调用，完成 fork 的最终初始化工作。
+// 它通常在以下场景使用
+//   子进程第一次运行时
+//   初始化文件系统
+//   释放进程锁
+//   返回用户态前的最后一步
 void
 forkret(void)
 {
@@ -543,13 +565,17 @@ forkret(void)
     // File system initialization must be run in the context of a
     // regular process (e.g., because it calls sleep), and thus cannot
     // be run from main().
+    // 挂载根设备并初始化文件系统缓存
     fsinit(ROOTDEV);
 
+    // 防止重复初始化。
     first = 0;
     // ensure other cores see first=0.
+    // 确保 first = 0 的写操作对所有 CPU 可见
     __sync_synchronize();
   }
 
+  //  返回用户态
   usertrapret();
 }
 

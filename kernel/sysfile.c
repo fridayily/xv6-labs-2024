@@ -431,6 +431,9 @@ sys_chdir(void)
   return 0;
 }
 
+
+// char *argv[] = { "echo", "hello", 0 };
+// exec("/echo", argv);
 uint64
 sys_exec(void)
 {
@@ -438,7 +441,9 @@ sys_exec(void)
   int i;
   uint64 uargv, uarg;
 
+  // 第一个参数是数组
   argaddr(1, &uargv);
+  // 第0个参数是 路径
   if(argstr(0, path, MAXPATH) < 0) {
     return -1;
   }
@@ -447,6 +452,7 @@ sys_exec(void)
     if(i >= NELEM(argv)){
       goto bad;
     }
+    // 这段代码用于从用户空间获取 argv 参数指针数组中的每个指针（即每个参数字符串的地址），并验证其有效性。
     if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&uarg) < 0){
       goto bad;
     }
@@ -454,9 +460,11 @@ sys_exec(void)
       argv[i] = 0;
       break;
     }
+    // 每个参数分配一个物理页
     argv[i] = kalloc();
     if(argv[i] == 0)
       goto bad;
+    // 获取参数的字符串
     if(fetchstr(uarg, argv[i], PGSIZE) < 0)
       goto bad;
   }

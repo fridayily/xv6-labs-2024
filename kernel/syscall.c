@@ -21,6 +21,8 @@ fetchaddr(uint64 addr, uint64 *ip)
 
 // Fetch the nul-terminated string at addr from the current process.
 // Returns length of string, not including nul, or -1 for error.
+// 该函数用于从用户空间读取一个字符串参数，并将其复制到内核缓冲区 buf 中。
+// 常用于系统调用中处理用户传入的字符串参数（如文件路径名）
 int
 fetchstr(uint64 addr, char *buf, int max)
 {
@@ -30,6 +32,7 @@ fetchstr(uint64 addr, char *buf, int max)
   return strlen(buf);
 }
 
+// argraw来获取相应的已保存的用户寄存器的值
 static uint64
 argraw(int n)
 {
@@ -158,7 +161,7 @@ static char *syscall_names[] = {
    "trace"
 }
 ;
-// 执行 ecall 指令后跳转到这里
+// 执行 ecall 指令后跳转到这里   由 trap.c 中的 usertrap 中的 syscall 调用
 void
 syscall(void)
 {

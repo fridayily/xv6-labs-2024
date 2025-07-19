@@ -85,17 +85,24 @@ holding(struct spinlock *lk)
 // it takes two pop_off()s to undo two push_off()s.  Also, if interrupts
 // are initially off, then push_off, pop_off leaves them off.
 
+// 临时关闭 CPU 中断，并维护一个嵌套计数器（noff），以支持嵌套调用
 void
 push_off(void)
 {
+  // 获取当前中断是否启用的状态（1 表示启用，0 表示禁用）
   int old = intr_get();
-
+  // 禁止 CPU 响应中断，确保后续操作原子性s
   intr_off();
+
+  // mycpu()->noff 表示当前 CPU 上已调用 push_off() 的次数
+  // mycpu()->intena 保存进入临界区前的中断状态（即是否原本开启中断)
   if(mycpu()->noff == 0)
     mycpu()->intena = old;
   mycpu()->noff += 1;
 }
 
+
+// 恢复中断状态，只有当所有嵌套的 push_off() 都被匹配的 pop_off() 调用后才真正恢复中断
 void
 pop_off(void)
 {

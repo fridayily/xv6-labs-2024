@@ -27,7 +27,7 @@ void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  // 初始化所有物理内存
+  // 初始化所有物理内存，end 之前的都是 text,srodata,data,bss 段
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -63,6 +63,7 @@ kfree(void *pa)
 #endif
   
   // pa 是内存物理地址，现在存到 run 结构体中
+  // 取 pa 的地址，作为  freelist 的节点，因此分配 4k 内存时，实际可以使用的空间为 4k- 8 字节
   r = (struct run*)pa;
 
   acquire(&kmem.lock);

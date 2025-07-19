@@ -34,6 +34,9 @@ w_mstatus(uint64 x)
 // machine exception program counter, holds the
 // instruction address to which a return from
 // exception will go.
+// csrw 是 RISC-V 的 Control and Status Register Write 指令
+// mepc 是目标寄存器, Machine Exception PC，表示发生异常后返回执行的地址；
+// %0 表示第一个输入操作数（即 x)
 static inline void 
 w_mepc(uint64 x)
 {
@@ -43,7 +46,7 @@ w_mepc(uint64 x)
 // Supervisor Status Register, sstatus
 
 #define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
-#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable 先前中断使能
 #define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
@@ -114,6 +117,8 @@ w_mie(uint64 x)
 // supervisor exception program counter, holds the
 // instruction address to which a return from
 // exception will go.
+// 陷阱发生后，CPU 的程序计数器（PC）会被立即更新为 stvec 寄存器中的陷阱处理程序地址（以便跳转到内核处理逻辑），
+// 而 sepc 的作用就是 “记住” 陷阱发生前的 PC 值，为后续的 “返回” 做准备。
 static inline void 
 w_sepc(uint64 x)
 {
@@ -160,6 +165,10 @@ w_mideleg(uint64 x)
 
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
+// 内核会将陷阱处理程序 trap handler 的起始地址写入 stvec 寄存器
+// 当 RISC-V CPU 检测到陷阱（如用户程序执行 ecall 触发系统调用、出现除以零的异常、设备发出中断信号等）时，
+// 会自动读取 stvec 寄存器中存储的地址，并跳转到该地址执行代码。
+// 这一过程是硬件级别的自动行为，确保陷阱发生后能快速进入内核的处理流程
 static inline void 
 w_stvec(uint64 x)
 {
@@ -243,6 +252,7 @@ r_satp()
 }
 
 // Supervisor Trap Cause
+// RISC-V puts a number here that describes the reason for the trap
 static inline uint64
 r_scause()
 {
@@ -316,6 +326,7 @@ r_sp()
 
 // read and write tp, the thread pointer, which xv6 uses to hold
 // this core's hartid (core number), the index into cpus[].
+// 读取 RISC-V 架构下的线程指针寄存器（tp）的内容
 static inline uint64
 r_tp()
 {

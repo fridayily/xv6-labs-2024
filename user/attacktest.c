@@ -90,14 +90,18 @@ main(int argc, char *argv[])
       exit(1);   
     }
     if(pid == 0) {
+      // 关闭读端
       close(fds[0]);
+      // 关闭标准错误
       close(2);
+      // 将管道写端复制到标准错误 fd=2
       dup(fds[1]);
       char *newargv[] = { "attack", 0 };
       exec(newargv[0], newargv);
       printf("exec %s failed\n", newargv[0]);
       exit(1);
     } else {
+      // 关闭管道写端（父进程仅需读）
        close(fds[1]);
        // 从 pipe 读端读取数据
       if(read(fds[0], output, 64) < 0) {

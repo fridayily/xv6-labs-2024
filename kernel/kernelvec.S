@@ -9,6 +9,8 @@
 .globl kerneltrap
 .globl kernelvec
 .align 4
+
+# kernelvec 将寄存器的值保存到被中断的内核线程的栈中，这一做法是合理的，因为这些寄存器值属于该线程
 kernelvec:
         # make room to save registers.
         addi sp, sp, -256
