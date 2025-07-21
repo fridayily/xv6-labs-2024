@@ -14,7 +14,7 @@ fetchaddr(uint64 addr, uint64 *ip)
   struct proc *p = myproc();
   if(addr >= p->sz || addr+sizeof(uint64) > p->sz) // both tests needed, in case of overflow
     return -1;
-  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0) // 从 addr 拷贝 8 字节到 ip
     return -1;
   return 0;
 }

@@ -38,7 +38,7 @@ memmove(void *dst, const void *src, uint n)
   
   s = src;
   d = dst;
-  if(s < d && s + n > d){
+  if(s < d && s + n > d){ //有重叠（倒序拷贝）
     s += n;
     d += n;
     while(n-- > 0)

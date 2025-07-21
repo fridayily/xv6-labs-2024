@@ -184,12 +184,11 @@ freeproc(struct proc *p)
 pagetable_t
 proc_pagetable(struct proc *p)
 {
+  DEBUG("proc_pagetable %p",p);
   pagetable_t pagetable;
-
   // An empty page table.
   // 创建用户空间的虚拟表
   pagetable = uvmcreate();
-  printf("uvmcreate pagetable=%p\n",pagetable);
   if(pagetable == 0)
     return 0;
 
@@ -298,6 +297,7 @@ growproc(int n)
 int
 fork(void)
 {
+  DEBUG("fork begin");
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
@@ -310,11 +310,13 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
+  DEBUG("fork uvmcopy %p -> %p ",p->pagetable,np->pagetable);
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
   }
+
   // size of memory
   np->sz = p->sz;
 
@@ -348,6 +350,7 @@ fork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
+  DEBUG("fork end");
 
   return pid;
 }

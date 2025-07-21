@@ -196,6 +196,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_sleep\
+	$U/_ex3\
+	$U/_ex4\
 	$U/_trace
 
 

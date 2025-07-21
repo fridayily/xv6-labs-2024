@@ -70,6 +70,7 @@ kfree(void *pa)
   // 将 r 节点插入链表头部，kmem 是头节点
   r->next = kmem.freelist;
   kmem.freelist = r;
+  printf("kfree %p\n",r);
   release(&kmem.lock);
 }
 
@@ -95,6 +96,7 @@ if(r) {
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
 #endif
+  printf("kalloc %p\n",r);
   return (void*)r;
 }
 

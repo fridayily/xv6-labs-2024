@@ -99,6 +99,7 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
+  DEBUG("walk begin, %p",pagetable);
   if(va >= MAXVA)
     panic("walk");
   // level > 0 是停止条件，该循环只会执行2次，而不是3次
@@ -120,10 +121,12 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     // PTE 标记无效
     // alloc = 0,则直接返回0
     // alloc !=0,新分配一页内存，成功后初始化分配内存为0
+    //  level =2 时，这里建的是 level=1 的页表
+    //  level =1 时，建的是  level=0 的页表
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
-      // 第level 的物理地址转为 PTE，并设置为有效
+      // 第 level 的物理地址转为 PTE，并设置为有效
       // 假如这里新建第二级页表，将该页表的物理地址页号存到第一级的PTE中
       // 注意这里是赋值操作，由于 PTE 无效，这里分配新的页表
       *pte = PA2PTE(pagetable) | PTE_V;
@@ -131,6 +134,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   }
   // 这里的 pagetable 是 L0 级页表
   // 获得索引位置的地址，这个地址用来存储物理地址
+  DEBUG("walk end, %p",pagetable);
   return &pagetable[PX(0, va)]; 
 }
 
@@ -178,6 +182,7 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 int
 mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 {
+  DEBUG("mappages %p",pagetable);
   uint64 a, last;
   pte_t *pte;
   if((va % PGSIZE) != 0)
@@ -283,14 +288,17 @@ uvmfirst(pagetable_t pagetable, uchar *src, uint sz)
 uint64
 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
 {
+  DEBUG("uvmalloc pagetable %p,oldsz %lu,newsz %lu",pagetable,oldsz,newsz);
   char *mem;
   uint64 a;
   int sz;
-
+  // 如果想要扩容的地址小于旧地址，则不会扩容，返回原始大小
   if(newsz < oldsz)
     return oldsz;
 
   oldsz = PGROUNDUP(oldsz);
+  // newsz 可能是一个ELF 的代码段，大小可能不是 4k
+  // sbrk 也是调用 uvmalloc 实现
   for(a = oldsz; a < newsz; a += sz){
     sz = PGSIZE;
     mem = kalloc(); // 分配物理地址
@@ -302,7 +310,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
 #ifndef LAB_SYSCALL
     memset(mem, 0, sz);
 #endif
-    // 建立虚拟地址与物理地址的关系
+    // 建立虚拟地址与物理地址的关系：先获取一个可用的PTE，然后存储物理地址
     if(mappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
       kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
@@ -358,11 +366,14 @@ freewalk(pagetable_t pagetable)
 void
 uvmfree(pagetable_t pagetable, uint64 sz)
 {
+  DEBUG("uvmfree begin %p, %lu",pagetable,sz);
   if(sz > 0)
     uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
   // freewalk 递归释放页表结构本身（即各级页目录和页表），
   // 但它 不会释放这些页表所指向的物理内存页面
+  DEBUG("uvmunmap end");
   freewalk(pagetable);
+  DEBUG("uvmfree end");
 }
 
 // Given a parent process's page table, copy
@@ -380,8 +391,12 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint64 pa, i;
   uint flags;
   char *mem;
-
+  DEBUG("uvmcopy begin");
+  // 用户的低地址空间
+  // sz = text,data,stack,heap
+  // 比如 一般一个程序会有 text,data,stack, stack 有2 page，一共会复制 4 page
   for(i = 0; i < sz; i += PGSIZE){
+    DEBUG("map %lu th part: ",i/PGSIZE);
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
@@ -390,7 +405,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
       goto err;
-      // 拷贝1页数据到新分配的地址
+    // 拷贝1页数据到新分配的地址
     memmove(mem, (char*)pa, PGSIZE);
     // 将新分配的物理地址与虚拟地址建立关系
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
@@ -398,6 +413,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       goto err;
     }
   }
+  DEBUG("uvmcopy end");
   return 0;
 
  err:
@@ -480,12 +496,12 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
   uint64 n, va0, pa0;
   
   while(len > 0){
-    va0 = PGROUNDDOWN(srcva);
+    va0 = PGROUNDDOWN(srcva); // 将任意虚拟地址对齐到页的起始地址；
     // 物理地址
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
-    n = PGSIZE - (srcva - va0);
+    n = PGSIZE - (srcva - va0); // 计算当前页剩余空间
     if(n > len)
       n = len;
       //从用户虚拟地址拷贝到内核的dst
