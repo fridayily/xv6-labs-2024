@@ -299,6 +299,8 @@ ifeq ($(LAB),fs)
 CPUS := 1
 endif
 
+CPUS := 1
+
 FWDPORT1 = $(shell expr `id -u` % 5000 + 25999)
 FWDPORT2 = $(shell expr `id -u` % 5000 + 30999)
 

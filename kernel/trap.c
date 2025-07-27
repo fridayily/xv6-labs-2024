@@ -43,6 +43,8 @@ usertrap(void)
 
   // send interrupts and exceptions to kerneltrap(),
   // since we're now in the kernel.
+  // 在系统调用过程中, kernelvec 不会直接触发,只有在内核代码执行期间发生陷阱
+  // 如 内核线程被中断或者异常, 如定时器中断,内核中的页错误
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
@@ -110,6 +112,18 @@ usertrapret(void)
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
   
+  // How SPP Works:
+  // When a trap occurs:
+
+  // Hardware automatically saves the current privilege level in SPP
+  // If trap came from User mode, SPP is set to 0
+  // If trap came from Supervisor mode, SPP is set to 1
+
+  // When returning from trap:
+  // The sret instruction uses SPP to determine what privilege level to return to
+  // If SPP = 0, sret returns to User mode
+  // If SPP = 1, sret returns to Supervisor mode
+
   // set S Previous Privilege mode to User.
   unsigned long x = r_sstatus();
   x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
@@ -121,7 +135,7 @@ usertrapret(void)
 
   // tell trampoline.S the user page table to switch to.
   uint64 satp = MAKE_SATP(p->pagetable);
-
+ 
   // jump to userret in trampoline.S at the top of memory, which 
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.

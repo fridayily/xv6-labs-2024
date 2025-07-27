@@ -461,6 +461,14 @@ sys_exec(void)
       goto bad;
   }
 
+  printf("[exec] path=%s argv=", path);
+  for(int j = 0; j < i; j++) {
+    if(argv[j])
+      printf("%s ", argv[j]);
+    else
+      break;
+  }
+  printf("\n");
   int ret = exec(path, argv);
 
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
