@@ -334,6 +334,66 @@ class Xv6WatchFile(gdb.Command):
             except gdb.error as e:
                 print(f"Error setting watchpoint on {func}: {e}")
 
+class CommandHook(gdb.Command):
+    def __init__(self):
+        super(CommandHook, self).__init__("",gdb.COMMAND_USER,gdb.COMPLETE_NONE,True)
+
+    def invoke(self, arg, from_tty):
+        print(f"\n>>> {arg}")
+        try:
+            output = gdb.execute(arg,to_string=True)
+            if output:
+                print(output)
+        except gdb.error as e:
+            print(f"Error executing command: {e}")
+
+
+class Xv6SourceLocation(gdb.Command):
+    """获取当前执行位置的源文件名和行号"""
+    
+    def __init__(self):
+        super(Xv6SourceLocation, self).__init__("xv6-location", gdb.COMMAND_USER)
+    
+    def invoke(self, arg, from_tty):
+        """显示当前执行位置的文件名和行号"""
+        filename, line_num = self.get_current_file_and_line()
+        if filename and line_num:
+            print(f"Current location: {filename}:{line_num}")
+        else:
+            print("Could not determine current file and line")
+    
+    def get_current_file_and_line(self):
+        """
+        获取当前执行位置的文件名和行号
+        
+        Returns:
+            tuple: (filename, line_number) or (None, None) if not available
+        """
+        try:
+            # 获取当前帧
+            frame = gdb.selected_frame()
+            if not frame:
+                return None, None
+                
+            # 获取程序计数器
+            pc = frame.pc()
+            
+            # 通过PC查找源文件和行号
+            symtab_and_line = gdb.find_pc_line(pc)
+            
+            if symtab_and_line.symtab is not None:
+                # 获取源文件名和行号
+                filename = symtab_and_line.symtab.filename
+                line_number = symtab_and_line.line
+                return filename, line_number
+            else:
+                return None, None
+                
+        except gdb.error:
+            return None, None
+
+
+
 # 自动加载脚本
 def init_xv6_gdb():
     print("Loading xv6 GDB helper functions...")
@@ -350,6 +410,8 @@ def init_xv6_gdb():
         print(f"Warning: Could not enable GDB logging: {e}")
 
     set_breakpoints_for_key_functions()
+
+    
     # 先尝试删除已存在的命令
     try:
         gdb.execute("del xv6-regs")
@@ -378,6 +440,8 @@ def init_xv6_gdb():
     Xv6PrintProc()
     Xv6BreakSyscall()
     Xv6WatchFile()
+    Xv6SourceLocation()
+    # CommandHook()
     
     # 添加常用断点命令别名
     try:

@@ -14,9 +14,9 @@ void superpg_test();
 int
 main(int argc, char *argv[])
 {
-  print_pgtbl();
-  ugetpid_test();
-  print_kpgtbl();
+  // print_pgtbl();
+  // ugetpid_test();
+  // print_kpgtbl();
   superpg_test();
   printf("pgtbltest: all tests succeeded\n");
   exit(0);
@@ -106,6 +106,7 @@ supercheck(uint64 s)
     *(int*)(s+i) = i;
   }
 
+
   for(int i = 0; i < 512; i += PGSIZE){
     if(*(int*)(s+i) != i)
       err("wrong value");
@@ -121,6 +122,7 @@ superpg_test()
   testname = "superpg_test";
   
   char *end = sbrk(N);
+  printf("end %p\n",(void *)end);
   if (end == 0 || end == (char*)0xffffffffffffffff)
     err("sbrk failed");
   

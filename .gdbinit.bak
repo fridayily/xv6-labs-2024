@@ -4,3 +4,5 @@ target remote 127.0.0.1:25501
 symbol-file kernel/kernel
 set disassemble-next-line auto
 set riscv use-compressed-breakpoints yes
+source xv6_gdb.py
+echo [GDBINIT] .gdbinit loaded successfully\n

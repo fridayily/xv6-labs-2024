@@ -36,6 +36,7 @@ trapinithart(void)
 void
 usertrap(void)
 {
+  // printf("usertrap\n");
   int which_dev = 0;
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -67,6 +68,7 @@ usertrap(void)
     intr_on();
 
     syscall();
+    // printf("syscall end\n");
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
@@ -91,6 +93,7 @@ usertrap(void)
 void
 usertrapret(void)
 {
+  // printf("usertrapret begin\n");
   struct proc *p = myproc();
 
   // we're about to switch the destination of traps from
@@ -109,6 +112,7 @@ usertrapret(void)
   p->trapframe->kernel_trap = (uint64)usertrap;
   p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
 
+  p->usyscall->pid = p->pid;
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
   
@@ -139,8 +143,10 @@ usertrapret(void)
   // jump to userret in trampoline.S at the top of memory, which 
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.
+  // printf("trampoline_userret beg\n");
   uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
   ((void (*)(uint64))trampoline_userret)(satp);
+  printf("usertrapret end\n");
 }
 
 // interrupts and exceptions from kernel code go here via kernelvec,

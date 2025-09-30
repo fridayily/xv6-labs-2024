@@ -5,8 +5,11 @@
             "includePath": [
                 "${workspaceFolder}/**"
             ],
-            "defines": [],
-            "compilerPath": "/usr/bin/riscv64-linux-gnu-gcc",
+            "defines": [
+                "LAB_PGTBL",
+                "LAB_PGTBL_UPPER"
+            ],
+            "compilerPath": "/opt/homebrew/bin/riscv64-unknown-elf-gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "linux-gcc-x64",
