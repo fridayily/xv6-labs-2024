@@ -136,7 +136,7 @@ found:
     return 0;
   }
 
-  // An empty user page table.
+  // An empty user page table. 为一个进程分配页表
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
     freeproc(p);
@@ -148,7 +148,7 @@ found:
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
-  // 每个进程在内核有独立的栈空间，sp 初始指向栈顶 
+  // 将新进程的 context 结构体中的栈指针 (sp) 设置为指向该进程内核栈的栈顶
   p->context.sp = p->kstack + PGSIZE;
 
   return p;

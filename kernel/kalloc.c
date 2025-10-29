@@ -63,14 +63,14 @@ kfree(void *pa)
 #endif
   
   // pa 是内存物理地址，现在存到 run 结构体中
-  // 取 pa 的地址，作为  freelist 的节点，因此分配 4k 内存时，实际可以使用的空间为 4k- 8 字节
+  // 取 pa 的地址，作为  freelist 的节点，因此分配 4k 内存时，实际可以使用的空间为 4k- 8 字节 (是这样吗??)
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
   // 将 r 节点插入链表头部，kmem 是头节点
   r->next = kmem.freelist;
   kmem.freelist = r;
-  printf("kfree %p\n",r);
+  // printf("kfree %p\n",r);
   release(&kmem.lock);
 }
 
@@ -96,7 +96,6 @@ if(r) {
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
 #endif
-  printf("kalloc %p\n",r);
+  // DEBUG("kalloc %p\n",r);
   return (void*)r;
 }
-

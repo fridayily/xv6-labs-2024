@@ -460,6 +460,20 @@ sys_chdir(void)
   return 0;
 }
 
+// 自定义函数，用于打印exec系统调用的参数信息
+static void
+print_exec_args(char *path, char *argv[], int argc)
+{
+  printf("[exec] path=%s argv=", path);
+  for(int j = 0; j < argc; j++) {
+    if(argv[j])
+      printf("%s ", argv[j]);
+    else
+      break;
+  }
+  printf("\n");
+}
+
 // char *argv[] = { "echo", "hello", 0 };
 // exec("/echo", argv);
 uint64
@@ -502,14 +516,8 @@ sys_exec(void)
       goto bad;
   }
 
-  int ii = 0;
-  printf("exec %s, ", path);
-  while (argv[ii] != 0)
-  {
-    printf("%s ",argv[ii]);
-    ii++;
-  }
-  printf("\n");
+  print_exec_args(path,argv,i);
+
   int ret = exec(path, argv);
 
   for (i = 0; i < NELEM(argv) && argv[i] != 0; i++)

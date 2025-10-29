@@ -1,0 +1,3 @@
+b allocproc
+b proc_pagetable
+b uvmcopy

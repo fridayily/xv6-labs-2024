@@ -6,6 +6,7 @@
 int
 main(int argc, char *argv[])
 {
+  // __DBL_HAS_QUIET_NAN__
   // your code here.  you should write the secret to fd 2 using write
   // (e.g., write(2, secret, 8)
   if(argc != 1){

@@ -99,7 +99,7 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
-  DEBUG("walk begin, %p",pagetable);
+  // DEBUG("walk begin, %p",pagetable);
   if(va >= MAXVA)
     panic("walk");
   // level > 0 是停止条件，该循环只会执行2次，而不是3次
@@ -134,7 +134,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   }
   // 这里的 pagetable 是 L0 级页表
   // 获得索引位置的地址，这个地址用来存储物理地址
-  DEBUG("walk end, %p",pagetable);
+  // DEBUG("walk end, %p",pagetable);
   return &pagetable[PX(0, va)]; 
 }
 
@@ -200,12 +200,19 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   last = va + size - PGSIZE;
   for(;;){
     // walk 返回的是最后一级页表的某一表项的物理地址，用来存储想要分配的物理地址
+    // 执行到这里时三级页表可能还没有建立
+    // pagetable指向一块 4k 的物理地址, 即 L2 级页表,此时内存数据全0
+    // L2级页表[PX(2, va)] 指的是 L2 级页表的一个表项, 此时数据为0,因为没有 L1 级页表
+    // 因为这个表项无效, 用 kalloc 新建 4k 空间作为 L1 级页表
+    // 又因 L1级页表[PX(1, va)] 指向的表项数据是0, 因为没有 L0 级页表
+    // 因为这个表项无效, 用 kalloc 新建 4k 空间作为 L0 级页表
+    // 然后 walk 返回  L0级页表[PX(1, va)] 表项的地址
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     // 如果当前 PTE 已经被占用，表示已经映射过，不允许重复映射
     if(*pte & PTE_V)
       panic("mappages: remap");
-   //将物理地址 pa 转换为 PTE 格式，并设置权限标志和有效位
+   // 将物理地址 pa 转换为 PTE 格式，并设置权限标志和有效位, 这样 va 和 pa 就建立了映射关系
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
