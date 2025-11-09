@@ -1,3 +1,11 @@
 b allocproc
 b proc_pagetable
 b uvmcopy
+
+
+attacktest 的 elf
+$4 = {magic = 1179403647, 
+  elf = "\002\001\001\000\000\000\000\000\000\000\000", type = 2, 
+  machine = 243, version = 1, entry = 874, phoff = 64, shoff = 30200, 
+  flags = 5, ehsize = 64, phentsize = 56, phnum = 4, shentsize = 64, 
+  shnum = 17, shstrndx = 16}

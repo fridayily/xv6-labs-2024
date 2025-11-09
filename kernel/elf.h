@@ -34,6 +34,7 @@ struct proghdr {
 };
 
 // Values for Proghdr type
+// 包含.text、.data
 #define ELF_PROG_LOAD           1
 
 // Flag bits for Proghdr flags

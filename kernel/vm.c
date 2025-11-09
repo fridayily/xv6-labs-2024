@@ -150,7 +150,8 @@ walkaddr(pagetable_t pagetable, uint64 va)
   if(va >= MAXVA)
     return 0;
 
-  pte = walk(pagetable, va, 0); // 从pagetable 中获取对应的 pte 地址
+  // 从pagetable 中获取对应的 pte 地址
+  pte = walk(pagetable, va, 0); 
   if(pte == 0)
     return 0;
   if((*pte & PTE_V) == 0)
@@ -536,15 +537,22 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   int got_null = 0;
 
   while(got_null == 0 && max > 0){
+    // 页面起始地址
     va0 = PGROUNDDOWN(srcva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
+    // srcva - va0 是当前地址在页面内的偏移量
+    // PGSIZE - (srcva - va0) 计算出从当前地址到页面结尾还剩多少字节
     n = PGSIZE - (srcva - va0);
     if(n > max)
       n = max;
-
+    // offset = (srcva - va0) 是相对于一个 page 的偏移
+    // pa0 是所在的物理页起始地址
+    // pa0 + offset 就是数据在物理页面的地址
     char *p = (char *) (pa0 + (srcva - va0));
+    // 想拷贝的数据可能是跨页的
+    // n 减到小于0时会调用 walkaddr 重新获取新的物理页
     while(n > 0){
       if(*p == '\0'){
         *dst = '\0';
@@ -558,7 +566,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
       p++;
       dst++;
     }
-
+    // 计算下一个虚拟页
     srcva = va0 + PGSIZE;
   }
   if(got_null){

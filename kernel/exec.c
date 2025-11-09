@@ -102,14 +102,14 @@ int exec(char *path, char **argv)
   end_op();
   ip = 0;
 
-  p = myproc();
+  p = myproc(); // 为什么上面有一个 myproc() 这里还要有
   uint64 oldsz = p->sz;
 
   // Allocate some pages at the next page boundary.
   // Make the first inaccessible as a stack guard.
   // Use the rest as the user stack.
 
-  // 杠从ELF文件读取的段的大小， 然后对齐到页边界
+  // 刚从ELF文件读取的段的大小， 然后对齐到页边界
   sz = PGROUNDUP(sz);
   uint64 sz1;
   // 分配用户栈空间，返回新的用户虚拟地址空间上限（即更新后的 sz）
@@ -119,7 +119,7 @@ int exec(char *path, char **argv)
   sz = sz1; // 假如这里从ELF 文件读取两个段，sz=2*4k，然后这里会分配用户栈空间2*4k。sz= 4*4k
   // 设置栈底防护页，实际能用的用户栈空间为 1*4k
   uvmclear(pagetable, sz - (USERSTACK + 1) * PGSIZE);
-  // sp：栈顶指针
+  // sp：栈顶指针, sz 现在指向栈顶
   sp = sz;
   // stackbase 用户栈的起始地址
   // sp 用户栈指针（stack pointer）
@@ -139,7 +139,8 @@ int exec(char *path, char **argv)
     if (sp < stackbase)
       goto bad;
     // 将参数复制到用户栈
-    DEBUG("copy argv to user stack%p", pagetable);
+    DEBUG("copy argv to user stack %p", pagetable);
+    // argv 是虚拟地址
     if (copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     // 记录参数地址，而不是真实的参数

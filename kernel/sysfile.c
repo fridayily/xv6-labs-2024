@@ -512,7 +512,8 @@ sys_exec(void)
     if (argv[i] == 0)
       goto bad;
     // 获取参数的字符串
-    if (fetchstr(uarg, argv[i], PGSIZE) < 0) // 根据上面获取的参数地址得到真正的参数
+    // 根据上面获取的参数地址得到真正的参数
+    if (fetchstr(uarg, argv[i], PGSIZE) < 0)
       goto bad;
   }
 
