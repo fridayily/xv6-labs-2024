@@ -402,13 +402,17 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   DEBUG("uvmcopy begin");
   // 用户的低地址空间
   // sz = text,data,stack,heap
-  // 比如 一般一个程序会有 text,data,stack, stack 有2 page，一共会复制 4 page
+  // 如果是从 sh 应用 fork, .text 占用 2page, .data 占用 1page, 用户栈占用 2 page, 一共 5 page
   for(i = 0; i < sz; i += PGSIZE){
     DEBUG("map %lu th part: ",i/PGSIZE);
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+    // 在进行 fork 时  
+    // x/10i pa  可以查看 pa 处的指令
+    // riscv64-unknown-elf-objdump -h user/_sh | head -n 20  可以查看应用程序的汇编
+    // 两者应该是一样的
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)

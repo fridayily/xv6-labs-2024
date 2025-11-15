@@ -33,7 +33,7 @@ void
 proc_mapstacks(pagetable_t kpgtbl)
 {
   struct proc *p;
-  
+
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
@@ -148,7 +148,7 @@ found:
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
-  // 将新进程的 context 结构体中的栈指针 (sp) 设置为指向该进程内核栈的栈顶
+  // 将新进程的 context 结构体中的栈指针 (sp) 设置为指向该进程内核栈的栈顶  p->kstack 在 procinit(void) 初始化 
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
