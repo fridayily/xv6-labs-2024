@@ -13,11 +13,33 @@
 #include "riscv.h"
 #include "memlayout.h"
 
+
+# 整体工作流程：
+#   当用户空间发生陷阱时，硬件跳转到uservec
+#   uservec 保存用户寄存器并最终跳转到 usertrap() 函数
+#   usertrap() 函数处理陷阱（系统调用、中断等）
+#   处理完成后调用usertrapret()返回到用户空间
+
+
+
+# 用于定义一个名为trampsec的代码段（section）
+# 在xv6中，这个特殊的段被链接器放置在一个独立的内存页中，
+# 这个页在虚拟地址空间中有特殊的用途：它需要同时映射在内核空间和用户空间的相同虚拟地址（TRAMPOLINE）上。
 .section trampsec
+# 声明trampoline为全局符号，使其在其他文件中可见和可访问。这使得C代码（如trap.c）可以引用这个标签的地址。
 .globl trampoline
+# 将 usertrap 声明为全局符号，但trampoline.S 文件本身并没有包含 usertrap 的实际实现代码。
+# 实际的 usertrap 实现位于 trap.c 文件中，它是一个C语言函数
+# 这个全局符号声明的作用是建立链接：
+#    在 uservec 汇编代码的末尾, 有一条指令jr t0跳转到 usertrap() 函数
+#    这里 t0 寄存器的值是从陷阱帧（TRAPFRAME）中加载的usertrap函数地址
+#    为了让链接器能够正确解析这个引用，需要将 usertrap 声明为全局符号
 .globl usertrap
+# 定义 trampoline 标签，这是跳板页的起始点。整个跳板页包含了用于用户空间和内核空间之间切换的关键代码
 trampoline:
+# 指令告诉汇编器将后续代码按照16字节边界对齐（2^4=16）
 .align 4
+# 声明uservec为全局符号，使其可以在其他文件中被引用。uservec是处理来自用户空间陷阱的入口点。
 .globl uservec
 uservec:    
 	#
@@ -105,7 +127,14 @@ userret:
         # a0: user page table, for satp.
 
         # switch to the user page table.
+        # 这是第一条内存屏障指令（在设置新页表前执行），用于：
+        #   确保切换页表前的所有内存访问操作都已完成
+        #   刷新 TLB（Translation Lookaside Buffer）缓存中与当前页表相关的条目
+        #   防止 CPU 重排序导致的内存访问错误    
         sfence.vma zero, zero
+        # 将系统切换到用户页表，使得后续的内存访问使用用户空间的地址映射。
+        # 在RISC-V架构的调用约定中，第一个函数参数通过 a0 寄存器传递。因此，
+        # 当 trampoline_userret 函数被调用时，satp变量的值会被自动放入a0寄存器中
         csrw satp, a0
         sfence.vma zero, zero
 
