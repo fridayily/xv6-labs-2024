@@ -241,3 +241,11 @@ void            netinit(void);
 void            net_rx(char *buf, int len);
 
 #endif
+
+ // 1 = 开启调试打印，0 = 关闭
+#define DEBUG_PRINT 0
+#if DEBUG_PRINT
+#define DEBUG(fmt, ...) printf("[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#else
+#define DEBUG(fmt, ...)  // 无操作
+#endif

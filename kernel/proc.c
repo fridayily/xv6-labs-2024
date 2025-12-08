@@ -136,6 +136,7 @@ found:
     return 0;
   }
 
+  // 为 usyscall 分配一页内存
   if ((p->usyscall = (struct usyscall *)kalloc()) == 0)
   {
     freeproc(p);
@@ -170,6 +171,7 @@ freeproc(struct proc *p)
   if (p->trapframe)
     kfree((void *)p->trapframe);
   p->trapframe = 0;
+  // 释放 usyscall 页
   if (p->usyscall)
     kfree((void *)p->usyscall);
   p->usyscall = 0;
@@ -219,9 +221,7 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
-  // struct usyscall *u = (struct usyscall *)USYSCALL;
-  // u->pid = (uint64)(p->pid);
-  // p->usyscall->pid = p->pid;
+  // 建立 USYSCALL 和物理地址的映射关系
   if (mappages(pagetable, USYSCALL, PGSIZE, 
             (uint64)(p->usyscall), PTE_R | PTE_U)<0)
   {
@@ -378,7 +378,7 @@ void reparent(struct proc *p)
 void exit(int status)
 {
   struct proc *p = myproc();
-  printf("exit %s\n",p->name);
+  DEBUG("exit %s\n",p->name);
   if (p == initproc)
     panic("init exiting");
 
