@@ -8,6 +8,10 @@
 
 struct cpu cpus[NCPU];
 
+// proc[NPROC] 作为未初始化的全局数组，放在 BSS 段
+// 变量在磁盘上的可执行文件中没有对应的数据存储区域
+// 仅在可执行文件的段表中记录该变量需要的内存大小
+// 程序加载到内存时，由操作系统动态分配并初始化内存空间
 struct proc proc[NPROC];
 
 struct proc *initproc;
