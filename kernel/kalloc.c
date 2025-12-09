@@ -48,14 +48,13 @@ struct
 {
   struct spinlock lock;
   struct run *freelist;
-} superkmem;
+} supermem;
 
 void kinit()
 {
   initlock(&kmem.lock, "kmem");
+  initlock(&supermem.lock, "supermem");
   freerange(end, (void *)PHYSTOP);
-  // initlock(&superkmem.lock, "superkmem");
-  // superfreerange(end,(void *)PHYSTOP);
 }
 
 //  0x80023000->0x80022000->0x8002100 第1页
@@ -63,18 +62,17 @@ void freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char *)PGROUNDUP((uint64)pa_start);
-  for (; p + PGSIZE <= (char *)pa_end; p += PGSIZE)
+    uint64 superpage_start = (uint64)pa_end - 16 * SUPERPGSIZE;
+  DEBUG("freerange: freeing 4KB pages");
+  for (; p + PGSIZE <= (char *)superpage_start; p += PGSIZE)
     kfree(p);
-}
 
-//  0x80600000->0x80400000->0x80200000 第1页
-// void superfreerange(void *pa_start,void *pa_end)
-// {
-//   char *p;
-//   p = (char *)SUPERPGROUNDUP((uint64)pa_start);
-//   for(; p+ SUPERPGSIZE <= (char *)pa_end;p += SUPERPGSIZE)
-//     superkfree(p);
-// }
+  DEBUG("freerange: freeing 2MB superpages");
+  p = (char *)SUPERPGROUNDUP((uint64)p);
+  for (; p + SUPERPGSIZE <= (char *)pa_end; p += SUPERPGSIZE)
+    superfree(p);
+  DEBUG("freerange: completed");
+}
 
 // Free the page of physical memory pointed at by pa,
 // which normally should have been returned by a
@@ -97,20 +95,20 @@ void kfree(void *pa)
   release(&kmem.lock);
 }
 
-// void superkfree(void *pa)
-// {
-//   struct run *r;
-//   if (((uint64)pa % SUPERPGSIZE) != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
-//     panic("superfree");
+void superfree(void *pa)
+{
+  struct run *r;
+  if (((uint64)pa % SUPERPGSIZE) != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
+    panic("superfree");
 
-//   memset(pa, 1, SUPERPGSIZE);
+  memset(pa, 1, SUPERPGSIZE);
 
-//   r = (struct run *)pa;
-//   acquire(&superkmem.lock);
-//   r->next = superkmem.freelist;
-//   superkmem.freelist = r;
-//   release(&superkmem.lock);
-// }
+  r = (struct run *)pa;
+  acquire(&supermem.lock);
+  r->next = supermem.freelist;
+  supermem.freelist = r;
+  release(&supermem.lock);
+}
 
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
@@ -131,76 +129,19 @@ kalloc(void)
   return (void *)r;
 }
 
-// void *
-// superkalloc(void)
-// {
-//   struct run *r;
-
-//   acquire(&superkmem.lock);
-//   r = superkmem.freelist;
-//   if (r)
-//     superkmem.freelist = r->next;
-//   release(&superkmem.lock);
-
-//   if (r)
-//     memset((char *)r, 5, SUPERPGSIZE); // fill with junk
-//   printf("superkalloc %p\n",(void *)r);
-//   return (void *)r;
-// }
-
 void *
-superkalloc(void)
+superalloc(void)
 {
-  struct run *r = 0;
-  acquire(&kmem.lock);
-  struct run *current = kmem.freelist;
-  struct run **prev_ptr = &kmem.freelist;
+  struct run *r;
 
-  while (current)
-  {
-    uint64 start_pa = (uint64)current;
-    printf("start_pa %p\n",(void *)start_pa);
-    if ((start_pa % SUPERPGSIZE) == 0)
-    {
-      printf("in start_pa %p\n",(void *)start_pa);
-      struct run *end = current;
-      int i;
-      for (i = 0; i < 512 && end; i++)
-      {
-        uint64 expected_pa = start_pa - i * PGSIZE;
-        if ((uint64)end != expected_pa){
-          break;
-        }
-        end = end->next;
-        // printf("end %p freelist %p\n",end,kmem.freelist);
-      }
+  acquire(&supermem.lock);
+  r = supermem.freelist;
+  if (r)
+    supermem.freelist = r->next;
+  release(&supermem.lock);
 
-      if (i == 512)
-      {
-        r = current;
-        *prev_ptr = end;
-        // printf("512 r %p prev_ptr %p freelist %p\n",(void *)current,(void*)*prev_ptr,(void *)kmem.freelist);
-        kmem.freelist = end;
-        break;
-      }
-    }
-    prev_ptr = &(current->next);
-    current = current->next;
-  }
-  release(&kmem.lock);
+  if (r)
+    memset((char *)r, 5, SUPERPGSIZE); // fill with junk
+  DEBUG("superalloc %p\n", (void *)r);
   return (void *)r;
-}
-
-void superkfree(void *pa)
-{
-  if (((uint64)pa % SUPERPGSIZE) != 0 || (char *)pa < end || (uint64)pa >= PHYSTOP)
-    panic("superfree");
-  struct run *r=(struct run *)pa;
-  for(int i=0;i<511;i++){
-    r[i].next = &r[i+1];
-  }
-  acquire(&kmem.lock);
-  r[511].next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);  
 }

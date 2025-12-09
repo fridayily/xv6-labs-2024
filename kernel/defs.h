@@ -69,8 +69,8 @@ void            kfree(void *);
 void            kinit(void);
 
 // supperalloc
-void *superkalloc(void);
-void superkfree(void *);
+void *superalloc(void);
+void superfree(void *);
 
 // log.c
 void            initlog(int, struct superblock*);
