@@ -419,7 +419,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
     regular_pages:
       sz = PGSIZE;
       mem = kalloc();
-      DEBUG("kalloc %p\n", mem);
+      DEBUG_EVERY_N(10,"kalloc %p\n", mem);
       if (mem == 0)
       {
         uvmdealloc(pagetable, a, oldsz);

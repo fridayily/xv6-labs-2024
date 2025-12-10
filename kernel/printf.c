@@ -15,6 +15,8 @@
 #include "defs.h"
 #include "proc.h"
 
+int debug_counter = 0;
+
 volatile int panicked = 0;
 
 // lock to avoid interleaving concurrent printf's.
