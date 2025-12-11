@@ -176,3 +176,57 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+/* 
+Stack
+                   .
+                   .
+      +->          .
+      |   +-----------------+   |
+      |   | return address  |   |
+      |   |   previous fp ------+
+      |   | saved registers |
+      |   | local variables |
+      |   |       ...       | <-+
+      |   +-----------------+   |
+      |   | return address  |   |
+      +------ previous fp   |   |
+          | saved registers |   |
+          | local variables |   |
+      +-> |       ...       |   |
+      |   +-----------------+   |
+      |   | return address  |   |
+      |   |   previous fp ------+
+      |   | saved registers |
+      |   | local variables |
+      |   |       ...       | <-+
+      |   +-----------------+   |
+      |   | return address  |   |
+      +------ previous fp   |   |
+          | saved registers |   |
+          | local variables |   |
+  $fp --> |       ...       |   |
+          +-----------------+   |
+          | return address  |   |
+          |   previous fp ------+
+          | saved registers |
+  $sp --> | local variables |
+          +-----------------+
+
+*/
+void backtrace()
+{
+  uint64 fp = 0;
+  printf("backtrace:\n");
+  fp = r_fp(); 
+  // 计算fp所在页的起始地址
+  uint64 start_va = PGROUNDDOWN(fp);
+  do
+  {
+    // 打印当前栈帧的返回地址：fp-8存储的是调用当前函数的返回地址
+    printf("%p\n", (void *)*(uint64 *)(fp - 8));
+    // 切换到上一层栈帧：fp-16存储的是上一层栈帧的fp值
+    fp = *(uint64 *)(fp - 16);
+    // 终止条件：fp跨页（说明超出当前栈页，停止遍历）
+  } while (start_va == PGROUNDDOWN(fp));
+}
