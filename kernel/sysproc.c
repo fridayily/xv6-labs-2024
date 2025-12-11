@@ -93,3 +93,28 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 
+sys_sigalarm(void)
+{
+  // DEBUG("sys_sigalarm");
+  int ticks;
+  uint64 handler;
+    DEBUG("sys_sigalarm");
+  // acquire(&siglock);
+  argint(0, &ticks);
+  argaddr(1,&handler);
+  // DEBUG("ticks %d handler %lu",ticks,handler);
+  procsigalarm(ticks,(void*)handler);
+  return 0;
+}
+
+uint64 
+sys_sigreturn(void)
+{
+  // DEBUG("sys_sigreturn");
+  // acquire(&tickslock);
+  int i = procsigreturn();
+  // release(&siglock);
+  return i;
+}

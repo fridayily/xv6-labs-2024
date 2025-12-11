@@ -7,6 +7,7 @@
 #include "defs.h"
 
 struct spinlock tickslock;
+struct spinlock siglock;
 uint ticks;
 
 extern char trampoline[], uservec[], userret[];
@@ -20,6 +21,7 @@ void
 trapinit(void)
 {
   initlock(&tickslock, "time");
+  initlock(&siglock, "sig");
 }
 
 // set up to take exceptions and traps while in the kernel.
@@ -93,8 +95,18 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    p->acc_ticks +=1;
+  if(p->expires_ticks > 0 && p->acc_ticks >= p->expires_ticks && !p->alarm_active){
+    p->alarm_active = 1;
+    // 保存当前epc，以便sigreturn时恢复
+    memmove(&p->alarm_trapframe, p->trapframe, sizeof(struct trapframe));
+    // 设置epc为handler地址，这样返回用户空间时会执行handler
+    p->trapframe->epc = (uint64)p->handler;
+    p->acc_ticks = 0;
+  }
     yield();
+    }
 
   usertrapret();
 }
