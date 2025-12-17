@@ -6,6 +6,12 @@
         # push registers, call kerneltrap().
         # when kerneltrap() returns, restore registers, return.
         #
+        #
+        # 中断发生：硬件将程序计数器跳转到 kernelvec 地址
+        # 保存上下文：将所有调用者保存寄存器压入栈中
+        # 处理中断：调用C语言的kerneltrap函数进行实际处理
+        # 恢复上下文：从栈中恢复所有寄存器
+        # 返回执行：使用sret指令返回到被中断的程序
 .globl kerneltrap
 .globl kernelvec
 .align 4

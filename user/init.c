@@ -16,11 +16,16 @@ main(void)
 {
   int pid, wpid;
 
+  // 执行 open("console", O_RDWR) 后
+  // 返回文件描述符 0 （标准输入）
+  // 当执行 open 时，编译器会生成一个特殊指令（通常是 ecall）,CPU 切换到内核态
   if(open("console", O_RDWR) < 0){
     mknod("console", CONSOLE, 0);
     open("console", O_RDWR);
   }
+  // 复制 0 号文件描述符，返回文件描述符 1
   dup(0);  // stdout
+  // 复制 0 号文件描述符，返回文件描述符 2
   dup(0);  // stderr
 
   for(;;){

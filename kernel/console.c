@@ -183,10 +183,13 @@ consoleinit(void)
 {
   initlock(&cons.lock, "cons");
 
+  // UART 每接收到一个输入字节时就触发一次  接收中断（receive interrupt）
+  // UART 每发送完一个输出字节时就触发一次 发送完成中断（transmit complete interrupt）
   uartinit();
 
   // connect read and write system calls
   // to consoleread and consolewrite.
+
   devsw[CONSOLE].read = consoleread;
   devsw[CONSOLE].write = consolewrite;
 }

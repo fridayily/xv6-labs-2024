@@ -19,6 +19,14 @@
 // some have different meanings for
 // read vs write.
 // see http://byterunner.com/16550.html
+
+// RHR	0	只读	接收保持寄存器 Receive Holding Register 存储刚接收到的字节
+// THR	0	只写	发送保持寄存器 Transmit Holding Register 存储待发送的字节
+// IER	1	读写	中断使能寄存器 Interrupt Enable Register 控制UART中断
+// FCR	2	只写	FIFO控制寄存器 FIFO Control Register 配置收发FIFO
+// ISR	2	只读	中断状态寄存器 Interrupt Status Register 指示中断类型
+// LCR	3	读写	线路控制寄存器 Line Control Register 配置数据格式和波特率
+// LSR	5	只读	线路状态寄存器 Line Status Register 指示UART状态
 #define RHR 0                 // receive holding register (for input bytes)
 #define THR 0                 // transmit holding register (for output bytes)
 #define IER 1                 // interrupt enable register
@@ -56,6 +64,7 @@ uartinit(void)
   WriteReg(IER, 0x00);
 
   // special mode to set baud rate.
+  // 进入波特率设置模式
   WriteReg(LCR, LCR_BAUD_LATCH);
 
   // LSB for baud rate of 38.4K.
@@ -113,12 +122,15 @@ uartputc_sync(int c)
 {
   push_off();
 
+  // 如果系统已处于panic状态，进入无限循环
   if(panicked){
     for(;;)
       ;
   }
 
   // wait for Transmit Holding Empty to be set in LSR.
+  // 不断检查LSR（线路状态寄存器）的LSR_TX_IDLE位
+  // LSR_TX_IDLE（0x20）表示UART的发送保持寄存器（THR）已准备好接收新字符
   while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
     ;
   WriteReg(THR, c);
@@ -134,12 +146,15 @@ void
 uartstart()
 {
   while(1){
+    // 当写指针(uart_tx_w)等于读指针(uart_tx_r)时，表示缓冲区为空
     if(uart_tx_w == uart_tx_r){
       // transmit buffer is empty.
+      // 读取ISR寄存器（中断状态寄存器）用于清除可能的未处理中断状态
       ReadReg(ISR);
       return;
     }
     
+    // 读取LSR寄存器（线路状态寄存器），检查LSR_TX_IDLE位
     if((ReadReg(LSR) & LSR_TX_IDLE) == 0){
       // the UART transmit holding register is full,
       // so we cannot give it another byte.
@@ -147,12 +162,15 @@ uartstart()
       return;
     }
     
+    // 1. 从循环缓冲区获取字符
     int c = uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE];
+    // 2. 更新读指针（模运算实现循环）
     uart_tx_r += 1;
     
     // maybe uartputc() is waiting for space in the buffer.
+    // 3. 唤醒可能等待缓冲区空间的进程
     wakeup(&uart_tx_r);
-    
+    // 4. 发送字符到UART硬件
     WriteReg(THR, c);
   }
 }

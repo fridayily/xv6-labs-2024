@@ -18,13 +18,17 @@
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
+// argint(n, &fd) 获取指定的 fd
+// f=myproc()->ofile[fd] 根据 fd 获取 f 对象
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
   int fd;
   struct file *f;
 
+  // 从系统调用参数中获取文件描述符
   argint(n, &fd);
+  // 验证文件描述符的有效性, 通过 ofile 数组获取文件 f
   if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
     return -1;
   if(pfd)
@@ -36,6 +40,7 @@ argfd(int n, int *pfd, struct file **pf)
 
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
+// 为 f 分配一个 fd
 static int
 fdalloc(struct file *f)
 {
@@ -57,8 +62,19 @@ sys_dup(void)
   struct file *f;
   int fd;
 
+  // argfd(0,0,&f) 
+  // 第 0 个参数 0:  系统调用 dup(0),这里的0 是fd，argint(0, &fd) 这里的0是参数索引,即在内核里面获取用户空间数据 => fd=0
   if(argfd(0, 0, &f) < 0)
     return -1;
+  // 上面获取了一个文件描述符fd对应的 f
+  // 假设文件数组 ofile [0x8001cc38,0,0,0,0,...]
+  // 即 fd = 0 对应的文件为 0x8001cc38
+  // 执行 dup(0) 后
+  // 文件数组变成 ofile [0x8001cc38,0x8001cc38,0,0,0,...]
+  // 即 fd = 1 对应的文件为 0x8001cc38，即 fd=0 和 fd=1 指向相同的文件
+
+  // 再执行一次 dup(0)
+  // 文件数组变成 ofile [0x8001cc38,0x8001cc38,0x8001cc38,0,0,...]
   if((fd=fdalloc(f)) < 0)
     return -1;
   filedup(f);
@@ -301,6 +317,8 @@ create(char *path, short type, short major, short minor)
   return 0;
 }
 
+// open("console", O_RDWR)
+// 参数通过系统调用传递
 uint64
 sys_open(void)
 {
@@ -310,24 +328,29 @@ sys_open(void)
   struct inode *ip;
   int n;
 
+  // 从系统调用参数重获取打开模式和路径
   argint(1, &omode);
   if((n = argstr(0, path, MAXPATH)) < 0)
     return -1;
 
+  // 开始一个文件系统操作，确保文件系统的一致性
   begin_op();
 
   if(omode & O_CREATE){
+    // 创建文件
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
       end_op();
       return -1;
     }
   } else {
+    // 打开文件
     if((ip = namei(path)) == 0){
       end_op();
       return -1;
     }
     ilock(ip);
+    // 目录检查
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
       end_op();
@@ -335,12 +358,15 @@ sys_open(void)
     }
   }
 
+  // 如果是设备文件
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
     iunlockput(ip);
     end_op();
     return -1;
   }
 
+  // filealloc 分配一个新的文件结构
+  // fdalloc(f)：在进程的文件描述符表中分配一个空闲的文件描述符
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -389,6 +415,7 @@ sys_mkdir(void)
 uint64
 sys_mknod(void)
 {
+  DEBUG("sys_mknod");
   struct inode *ip;
   char path[MAXPATH];
   int major, minor;
@@ -431,6 +458,19 @@ sys_chdir(void)
   return 0;
 }
 
+// 自定义函数，用于打印exec系统调用的参数信息
+static void
+print_exec_args(char *path, char *argv[], int argc)
+{
+  DEBUG("[exec] path=%s ", path);
+  for(int j = 0; j < argc; j++) {
+    if(argv[j])
+      DEBUG("%d-> %s ",j,argv[j]);
+    else
+      break;
+  }
+}
+
 uint64
 sys_exec(void)
 {
@@ -460,6 +500,8 @@ sys_exec(void)
     if(fetchstr(uarg, argv[i], PGSIZE) < 0)
       goto bad;
   }
+
+  print_exec_args(path,argv,i);
 
   int ret = exec(path, argv);
 
