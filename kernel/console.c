@@ -30,9 +30,15 @@
 // called by printf(), and to echo input characters,
 // but not from write().
 //
+// 用于向 UART 发送单个字符的关键函数
 void
 consputc(int c)
 {
+  // DEBUG("consputc %d",c);
+  // 退格字符处理：当接收到 BACKSPACE（定义为 0x100）时，发送三个字符序列：
+  // \b（退格符）：将光标向左移动一位
+  // 空格：覆盖当前位置的字符
+  // \b（退格符): 将光标向左移动一位
   if(c == BACKSPACE){
     // if the user typed backspace, overwrite with a space.
     uartputc_sync('\b'); uartputc_sync(' '); uartputc_sync('\b');
@@ -62,6 +68,9 @@ consolewrite(int user_src, uint64 src, int n)
 
   for(i = 0; i < n; i++){
     char c;
+    // 使用 either_copyin 函数安全地从不同内存空间复制数据
+    // 当 user_src 非0时，从用户空间复制（需要权限检查）
+    // 当 user_src 为0时，从内核空间复制（直接访问）
     if(either_copyin(&c, user_src, src+i, 1) == -1)
       break;
     uartputc(c);

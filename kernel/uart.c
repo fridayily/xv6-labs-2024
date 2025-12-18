@@ -65,6 +65,7 @@ uartinit(void)
 
   // special mode to set baud rate.
   // 进入波特率设置模式
+  // 进入该模式后，0 号寄存器和 1 号寄存器就会变为波特率设置寄存器
   WriteReg(LCR, LCR_BAUD_LATCH);
 
   // LSB for baud rate of 38.4K.
@@ -86,6 +87,8 @@ uartinit(void)
   initlock(&uart_tx_lock, "uart");
 }
 
+// 用户进程 → write() 系统调用 → sys_write() → filewrite() → consolewrite() → uartputc() → UART 硬件
+
 // add a character to the output buffer and tell the
 // UART to start sending if it isn't already.
 // blocks if the output buffer is full.
@@ -101,17 +104,25 @@ uartputc(int c)
     for(;;)
       ;
   }
+  // 当发送缓冲区满时，进程调用sleep()进入睡眠状态
+  // 睡眠通道为&uart_tx_r，与uartstart()中的唤醒通道一致
   while(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE){
     // buffer is full.
     // wait for uartstart() to open up space in the buffer.
     sleep(&uart_tx_r, &uart_tx_lock);
   }
+  
+  // 字符写到缓冲区，此时缓冲区肯定非满
   uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;
+  // 发送缓冲区的写指针 +1 
   uart_tx_w += 1;
+  // 调用 uartstart()尝试立即发送字符，该函数会让 uart_tx_r +1
   uartstart();
   release(&uart_tx_lock);
 }
 
+
+// printf->consputs->uartputc_sync->WriteReg(THR, c)
 
 // alternate version of uartputc() that doesn't 
 // use interrupts, for use by kernel printf() and
@@ -133,10 +144,13 @@ uartputc_sync(int c)
   // LSR_TX_IDLE（0x20）表示UART的发送保持寄存器（THR）已准备好接收新字符
   while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
     ;
+  // 字符被写入 THR 后，UART 硬件自动将其复制到发送移位寄存器(TSR)
+  // TSR 将并行数据转换为串行比特流, 串行比特流通过物理串行线路发送出去
   WriteReg(THR, c);
 
   pop_off();
 }
+
 
 // if the UART is idle, and a character is waiting
 // in the transmit buffer, send it.
@@ -196,9 +210,11 @@ uartintr(void)
 {
   // read and process incoming characters.
   while(1){
+    // 从UART硬件读取一个字符
     int c = uartgetc();
     if(c == -1)
       break;
+  // 负责回显字符、处理特殊键（如退格、换行）
     consoleintr(c);
   }
 
@@ -207,3 +223,13 @@ uartintr(void)
   uartstart();
   release(&uart_tx_lock);
 }
+
+
+// 输入流程
+// 进程调用 uartputc() → 字符进入发送缓冲区 → uartstart()尝试发送 → 
+//    若UART忙则等待 → UART发送完成触发输出中断 → uartintr() → uartstart()继续发送
+
+
+// 输出流程
+// 进程调用uartputc() → 字符进入发送缓冲区 → uartstart()尝试发送 → 
+//    若UART忙则等待 → UART发送完成触发输出中断 → uartintr() → uartstart()继续发送

@@ -23,9 +23,11 @@ plicinithart(void)
   
   // set enable bits for this hart's S-mode
   // for the uart and virtio disk.
+  // 启用当前核心对 UART 和 virtio 磁盘中断的接收
   *(uint32*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ);
 
   // set this hart's S-mode priority threshold to 0.
+  // 设置当前核心的中断优先级阈值为 0（接收所有优先级大于 0 的中断）
   *(uint32*)PLIC_SPRIORITY(hart) = 0;
 }
 

@@ -214,6 +214,7 @@ devintr()
 {
   uint64 scause = r_scause();
 
+  // 这是一个通过 PLIC 的 supervisor 外部中断
   if(scause == 0x8000000000000009L){
     // this is a supervisor external interrupt, via PLIC.
 

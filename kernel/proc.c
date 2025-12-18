@@ -563,9 +563,11 @@ sleep(void *chan, struct spinlock *lk)
   release(lk);
 
   // Go to sleep.
+  // 设置等待通道
   p->chan = chan;
   p->state = SLEEPING;
 
+  // 调度其他进程
   sched();
 
   // Tidy up.

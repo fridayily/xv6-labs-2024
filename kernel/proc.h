@@ -87,6 +87,8 @@ struct proc {
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state
+  // chan  用于实现进程间的睡眠/唤醒同步机制。当进程需要等待某个事件发生时，
+  // 会将自己挂起在特定的 chan 上，直到被其他进程唤醒。
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait

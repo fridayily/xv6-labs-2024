@@ -55,11 +55,14 @@ sys_sleep(void)
   int n;
   uint ticks0;
 
+  // 获取要睡眠的时钟周期数
   argint(0, &n);
   if(n < 0)
     n = 0;
   acquire(&tickslock);
+  // 保存当前时钟周期数
   ticks0 = ticks;
+  // 检查是否已达到指定的睡眠周期数
   while(ticks - ticks0 < n){
     if(killed(myproc())){
       release(&tickslock);
