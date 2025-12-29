@@ -120,6 +120,8 @@ w_sepc(uint64 x)
   asm volatile("csrw sepc, %0" : : "r" (x));
 }
 
+// Supervisor Exception Program Counter
+// 用于记录陷阱发生时, 程序正在执行的指令地址
 static inline uint64
 r_sepc()
 {
@@ -362,6 +364,9 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PTE_W (1L << 2)
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // user can access
+
+#define PTE_COW (1L << 8) // user can access
+
 
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)

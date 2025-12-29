@@ -187,3 +187,37 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+
+// 1 = 开启调试打印，0 = 关闭
+#define DEBUG_PRINT 1
+// 调试打印频率控制：每DEBUG_FREQ次调用才打印一次
+#define DEBUG_FREQ 10
+
+#if DEBUG_PRINT
+extern int debug_counter;
+#define DEBUG(fmt, ...)                             \
+    do                                              \
+    {                                               \
+        debug_counter = 0;                          \
+        printf("[DEBUG] " fmt "\n", ##__VA_ARGS__); \
+    } while (0)
+
+// 带频率控制的DEBUG宏，
+#define DEBUG_EVERY_10(fmt, ...)                                                  \
+    do                                                                          \
+    {                                                                           \
+        if ((debug_counter++) % DEBUG_FREQ == 0)                                \
+            printf("[DEBUG] [cnt=%d] " fmt "\n", debug_counter, ##__VA_ARGS__); \
+    } while (0)
+
+#define DEBUG_EVERY_N(freq, fmt, ...) \
+    do { \
+        if ((debug_counter++) % (freq) == 0) \
+            printf("[DEBUG] [cnt=%d] [freq=%d] " fmt "\n", debug_counter, (freq), ##__VA_ARGS__); \
+    } while (0)    
+#else
+#define DEBUG(fmt, ...)        // 无操作
+#define DEBUG_EVERY_10(fmt, ...) // 无操作
+#define DEBUG_EVERY(freq, fmt, ...)
+#endif
