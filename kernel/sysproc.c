@@ -103,9 +103,10 @@ sys_sigalarm(void)
   // DEBUG("sys_sigalarm");
   int ticks;
   uint64 handler;
-    DEBUG("sys_sigalarm");
-  // acquire(&siglock);
+  DEBUG("sys_sigalarm");
+  // 获取第一个系统调用参数
   argint(0, &ticks);
+  // 获取第二个系统调用参数（地址类型), 这个参数是闹钟触发时要执行的处理函数地址
   argaddr(1,&handler);
   // DEBUG("ticks %d handler %lu",ticks,handler);
   procsigalarm(ticks,(void*)handler);

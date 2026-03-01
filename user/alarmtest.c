@@ -48,7 +48,7 @@ test0()
   int i;
   printf("test0 start\n");
   count = 0;
-  printf("periodic %p\n",&periodic);
+  // printf("periodic %p\n",&periodic);
   sigalarm(2, periodic);
   for(i = 0; i < 1000*500000; i++){
     if((i % 1000000) == 0)

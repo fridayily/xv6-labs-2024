@@ -194,7 +194,7 @@ void backtrace();
 
 
 // 1 = 开启调试打印，0 = 关闭
-#define DEBUG_PRINT 1
+#define DEBUG_PRINT 0
 // 调试打印频率控制：每DEBUG_FREQ次调用才打印一次
 #define DEBUG_FREQ 10
 
