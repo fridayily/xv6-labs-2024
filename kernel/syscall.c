@@ -185,7 +185,7 @@ syscall(void)
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
-  DEBUG("%d: syscall %s -> %ld\n",p->pid,syscall_names[num-1],p->trapframe->a0);
+  DEBUG("pid: %d, syscall: %s, p->trapframe->a0: %ld\n",p->pid,syscall_names[num-1],p->trapframe->a0);
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
