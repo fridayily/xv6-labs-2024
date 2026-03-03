@@ -189,7 +189,7 @@ void            virtio_disk_intr(void);
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
 
-#define DEBUG_PRINT 1  // 1 = 开启调试打印，0 = 关闭
+#define DEBUG_PRINT 0  // 1 = 开启调试打印，0 = 关闭
 
 // 调试打印宏
 #if DEBUG_PRINT
