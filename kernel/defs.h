@@ -243,7 +243,7 @@ void            net_rx(char *buf, int len);
 #endif
 
 // 1 = 开启调试打印，0 = 关闭
-#define DEBUG_PRINT 1
+#define DEBUG_PRINT 0
 // 调试打印频率控制：每DEBUG_FREQ次调用才打印一次
 #define DEBUG_FREQ 10
 
@@ -272,5 +272,5 @@ extern int debug_counter;
 #else
 #define DEBUG(fmt, ...)        // 无操作
 #define DEBUG_EVERY_10(fmt, ...) // 无操作
-#define DEBUG_EVERY(freq, fmt, ...)
+#define DEBUG_EVERY_N(freq, fmt, ...)
 #endif

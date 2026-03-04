@@ -150,7 +150,7 @@ static uint64 (*syscalls[])(void) = {
 };
 
 
-
+#if DEBUG_PRINT
 static char *syscall_names[] = {
    "fork",
    "exit",
@@ -176,7 +176,7 @@ static char *syscall_names[] = {
    "trace"
 }
 ;
-
+#endif
 
 void
 syscall(void)
@@ -185,7 +185,9 @@ syscall(void)
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
+  #if DEBUG_PRINT
   DEBUG("pid: %d, syscall: %s, p->trapframe->a0: %ld\n",p->pid,syscall_names[num-1],p->trapframe->a0);
+  #endif
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
